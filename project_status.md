@@ -1,0 +1,2 @@
+- setting up alexandria so github actions can ssh in
+  - ensure the github sshs into its own user, not my user. then disable password login and use keys instead
