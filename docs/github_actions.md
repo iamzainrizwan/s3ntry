@@ -6,13 +6,13 @@ clone the repo into its permanent deployment location, using the **ssh** install
 
 ```bash
   cd /opt/services
-  git clone git@github.com@username/repo.git
+  git clone git@github.com:username/repo.git
 ```
 
 ## 2. config repo auth
 
 the deployment user (`s3ntry`) should auth to gh using an **ssh deploy key**, rather than a personal gh account.
-generate a key as the deployment user:
+generate a key as the deployment user on alexandria:
 
 ```bash
 ssh-keygen -t ed25519 -C "alexandria-repo-reploy"
@@ -42,25 +42,26 @@ ssh -T git@github.com
 in the repo, create `.github/workflows/deploy.yml`
 e.g.:
 
-```YAML
-name: deploy repo
+```yaml
+name: Deploy repo
+
 on:
   push:
     branches:
       - main
+
 jobs:
   deploy:
     runs-on: self-hosted
 
     steps:
-    - name: deploy app
+      - name: Deploy app
+        working-directory: /opt/services/repo
         run: |
-        cd /opt/services/repo
-        git pull
-        docker compose up -d --build
+          git pull
+          docker compose up -d --build
 ```
-
-the important line is `runs-on: self-hosted`, as we self-host a runner on alexandria instead of having github ssh in.
+most important line is `runs-on: self-hosted` - instead of sshing into alexandria we tell it to run its own actions-runner
 
 ## 4. test
 
