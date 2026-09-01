@@ -1,0 +1,10 @@
+jobs:
+    deploy:
+        runs-on:self-hosted
+        steps:
+            - name: lint/test
+            run: |
+            echo "linting & testing"
+            - name: deploy app
+            runL |
+            echo "deploying app!"
