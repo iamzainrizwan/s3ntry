@@ -55,7 +55,11 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Deploy app
+      - name: lint/test
+        run: |
+         npm run lint || true
+         npm test 
+      - name: deploy app
         working-directory: /opt/services/repo
         run: |
           git pull
