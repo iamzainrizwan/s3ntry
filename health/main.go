@@ -62,3 +62,39 @@ func checkOnce(t Target) Status {
 		CheckedAt: time.Now(),
 	}
 }
+
+func monitor(targets []Target, interval time.Duration, out chan<- Status) {
+	for _, target := range targets {
+		t := target
+		go func() {
+			ticker := time.NewTicker(interval)
+			defer ticker.Stop()
+			out <- checkOnce(t)
+			for {
+				<-ticker.C
+				out <- checkOnce(t)
+			}
+		}()
+	}
+}
+
+func main() {
+	targets := []Target{
+		{"Google", "https://www.google.com"},
+		{"GitHub", "https://www.github.com"},
+	}
+
+	out := make(chan Status)
+
+	monitor(targets, 10*time.Second, out)
+
+	for status := range out {
+		log.Printf(
+			"%s: up=%t latency=%dms checked %s",
+			status.Target,
+			status.Up,
+			status.LatencyMs,
+			status.CheckedAt,
+		)
+	}
+}
