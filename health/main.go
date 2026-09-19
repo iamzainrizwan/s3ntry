@@ -138,6 +138,7 @@ func main() {
 	targets := []Target{
 		{"Google", "https://www.google.com"},
 		{"GitHub", "https://www.github.com"},
+		{"1337", "http://localhost:5150/api/health"},
 	}
 
 	out := make(chan Status)
