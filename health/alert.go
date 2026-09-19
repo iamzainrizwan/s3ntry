@@ -25,11 +25,11 @@ type Alerter interface {
 }
 
 type DiscordAlerter struct {
-	URL string // for now, Discord Webdhook
+	URL string
 }
 
 type SlackAlerter struct {
-	URL string // for now, Discord Webdhook
+	URL string
 }
 
 func (d DiscordAlerter) Alert(ctx context.Context, a Alert) error {

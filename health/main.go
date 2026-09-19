@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"log"
@@ -11,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/gdamore/tcell/v2/terminfo/a/alacritty"
 )
 
 type Target struct {
@@ -86,19 +89,31 @@ func checkOnce(t Target) Status {
 	}
 }
 
-func monitor(targets []Target, interval time.Duration, out chan<- Status) {
+func monitor(targets []Target, interval time.Duration, out chan<- Status, alerter Alerter) {
 	for _, target := range targets {
 		t := target
 		go func() {
+			var lastUp *bool
 			ticker := time.NewTicker(interval)
 			defer ticker.Stop()
-			out <- checkOnce(t)
 			for {
+				status := checkOnce(t)
+				if lastUp != nil && *lastUp != status.Up {
+					event := EventRecovery
+					if !status.Up {
+						event = EventDown
+					}
+					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+					if err := alerter.Alert(ctx, Alert{t, status, event}); err != nil {
+						log.Printf("alert failed for %s: %v", t.Name, err)
+					}
+					cancel()
+				}
+				lastUp = &status.Up
+				out <- status
 				<-ticker.C
-				out <- checkOnce(t)
 			}
-		}()
-	}
+	}()
 }
 
 func statusHandler(w http.ResponseWriter, r *http.Request) {
@@ -142,8 +157,9 @@ func main() {
 	}
 
 	out := make(chan Status)
-
-	monitor(targets, 10*time.Second, out)
+	
+	alerter = DiscordAlerter{os.Getenv(DISCORD_WEBHOOK_URL)}
+	monitor(targets, 10*time.Second, out, alerter)
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 	go func() {
