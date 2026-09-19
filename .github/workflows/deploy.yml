@@ -5,17 +5,19 @@ on:
 
 jobs:
     deploy:
-        runs-on:self-hosted
+        runs-on: self-hosted
         steps:
             - name: lint/test
-            working-directiory: health
-            run: |
-            go vet ./...
-            go test ./...
+              working-directory: /opt/services/s3ntry/health
+              run: |
+                go vet ./...
+                go test ./...
             
-            - name: deploy app
-            working-directory: health
-            run: go build -o /opt/services/s3ntry/health/s3ntry-health
+            - name: pull and build
+              working-directory: /opt/services/s3ntry
+              run: |
+                git pull
+                cd health && go build -o s3ntry-health .
 
             - name: restart service
-            run: systemctl --user restart s3ntry-health
+              run: systemctl --user restart s3ntry-health
