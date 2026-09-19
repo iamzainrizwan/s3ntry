@@ -1,9 +1,15 @@
 package main
 
 import (
+	"encoding/json"
 	"io"
 	"log"
+	"net"
 	"net/http"
+	"os"
+	"os/exec"
+	"strings"
+	"sync"
 	"time"
 )
 
@@ -13,11 +19,28 @@ type Target struct {
 }
 
 type Status struct {
-	Target    string
-	Up        bool
-	LatencyMs int64
-	CheckedAt time.Time
+	Target    string    `json:"target"`
+	Up        bool      `json:"up"`
+	LatencyMs int64     `json:"latency_ms"`
+	CheckedAt time.Time `json:"checked_at"`
 }
+
+type HostStatus struct {
+	Connectivity     bool `json:"connectivity"`
+	RebootRequired   bool `json:"reboot_required"`
+	UpdatesAvailable int  `json:"updates_available"`
+}
+
+type StatusResponse struct {
+	Services map[string]Status `json:"services"`
+	Host     HostStatus        `json:"host"`
+}
+
+var (
+	statuses   = make(map[string]Status)
+	mu         sync.RWMutex
+	hostStatus HostStatus
+)
 
 func checkOnce(t Target) Status {
 	start := time.Now()
@@ -78,6 +101,39 @@ func monitor(targets []Target, interval time.Duration, out chan<- Status) {
 	}
 }
 
+func statusHandler(w http.ResponseWriter, r *http.Request) {
+	mu.RLock()
+	defer mu.RUnlock()
+	response := StatusResponse{
+		statuses, hostStatus,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func checkConnectivity() bool {
+	conn, err := net.DialTimeout("tcp", "8.8.8.8:53", 5*time.Second)
+	if err != nil {
+		return false
+	}
+	conn.Close()
+	return true
+}
+
+func checkRebootRequired() bool {
+	_, err := os.Stat("/var/run/reboot-required")
+	return err == nil
+}
+
+func checkUpdatesAvailable() (int, error) {
+	cmd := exec.Command("apt", "list", "--upgradable")
+	out, err := cmd.Output()
+	if err != nil {
+		return 0, err
+	}
+	return len(strings.Split(strings.TrimSpace(string(out)), "\n")) - 1, nil
+}
+
 func main() {
 	targets := []Target{
 		{"Google", "https://www.google.com"},
@@ -87,8 +143,38 @@ func main() {
 	out := make(chan Status)
 
 	monitor(targets, 10*time.Second, out)
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+	go func() {
+		for {
+			updates, err := checkUpdatesAvailable()
+			if err != nil {
+				log.Printf("failed to check updates: %v", err)
+			}
+
+			mu.Lock()
+			hostStatus = HostStatus{
+				Connectivity:     checkConnectivity(),
+				RebootRequired:   checkRebootRequired(),
+				UpdatesAvailable: updates,
+			}
+			mu.Unlock()
+
+			<-ticker.C
+		}
+	}()
+
+	http.HandleFunc("/status", statusHandler)
+	go func() {
+		if err := http.ListenAndServe(":8080", nil); err != nil {
+			log.Printf("HTTP server failed: %v", err)
+		}
+	}()
 
 	for status := range out {
+		mu.Lock()
+		statuses[status.Target] = status
+		mu.Unlock()
 		log.Printf(
 			"%s: up=%t latency=%dms checked %s",
 			status.Target,
