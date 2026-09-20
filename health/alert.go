@@ -61,7 +61,7 @@ func (s SlackAlerter) Alert(ctx context.Context, a Alert) error {
 	case EventDown:
 		message = "🔴 **" + a.Target.Name + " is DOWN**"
 	case EventRecovery:
-		message = "🟢 **" + a.Target.Name + " has RECOOVERED**"
+		message = "🟢 **" + a.Target.Name + " has RECOVERED**"
 	default:
 		return fmt.Errorf("unknown alert event: %q", a.Event)
 	}
