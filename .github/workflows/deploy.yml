@@ -22,4 +22,6 @@ jobs:
               run: go build -o s3ntry-health .
 
             - name: restart service
-              run: systemctl --user restart s3ntry-health
+              run: |
+                export XDG_RUNTIME_DIR=/run/user/$(id -u)
+                systemctl --user restart s3ntry-health
