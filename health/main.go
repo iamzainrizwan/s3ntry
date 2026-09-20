@@ -12,8 +12,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/gdamore/tcell/v2/terminfo/a/alacritty"
 )
 
 type Target struct {
@@ -113,7 +111,8 @@ func monitor(targets []Target, interval time.Duration, out chan<- Status, alerte
 				out <- status
 				<-ticker.C
 			}
-	}()
+		}()
+	}
 }
 
 func statusHandler(w http.ResponseWriter, r *http.Request) {
@@ -158,7 +157,7 @@ func main() {
 
 	out := make(chan Status)
 	
-	alerter = DiscordAlerter{os.Getenv(DISCORD_WEBHOOK_URL)}
+	alerter := DiscordAlerter{os.Getenv("DISCORD_WEBHOOK_URL")}
 	monitor(targets, 10*time.Second, out, alerter)
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
