@@ -47,7 +47,7 @@ func (d DiscordAlerter) Alert(ctx context.Context, a Alert) error {
 	case EventNetworkDown:
 		message = "🔴 **host network is DOWN**"
 	case EventNetworkRecovery:
-		message = fmt.Sprintf("🟢 **host network has RECOVERED - was down for %s", a.DownFor.Round(time.Second))
+		message = fmt.Sprintf("🟢 **host network has RECOVERED** - was down for %s", a.DownFor)
 	default:
 		return fmt.Errorf("unknown alert event: %q", a.Event)
 	}
@@ -70,6 +70,10 @@ func (s SlackAlerter) Alert(ctx context.Context, a Alert) error {
 		message = "🔴 **" + a.Target.Name + " is DOWN**"
 	case EventRecovery:
 		message = "🟢 **" + a.Target.Name + " has RECOVERED**"
+	case EventNetworkDown:
+		message = "🔴 **host network is DOWN**"
+	case EventNetworkRecovery:
+		message = fmt.Sprintf("🟢 **host network has RECOVERED** - was down for %s", a.DownFor)
 	default:
 		return fmt.Errorf("unknown alert event: %q", a.Event)
 	}

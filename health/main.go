@@ -102,7 +102,7 @@ func monitor(targets []Target, interval time.Duration, out chan<- Status, alerte
 						event = EventDown
 					}
 					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-					if err := alerter.Alert(ctx, Alert{t, status, event, 0 * time.Second}); err != nil {
+					if err := alerter.Alert(ctx, Alert{t, status, event, 0}); err != nil {
 						log.Printf("alert failed for %s: %v", t.Name, err)
 					}
 					cancel()
@@ -146,11 +146,11 @@ func pollConnectivity(alerter Alerter, interval time.Duration) {
 		if !up && !wasDown {
 			timeWentDown = time.Now()
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			if err := alerter.Alert(ctx, Alert{t, s, EventNetworkDown, time.Since(timeWentDown)}); err != nil {
+			if err := alerter.Alert(ctx, Alert{t, s, EventNetworkDown, 0}); err != nil {
 				log.Printf("failed to send alert: %v", err)
 			}
 			cancel()
-
+			wasDown = true
 		}
 		if up && wasDown {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -158,6 +158,7 @@ func pollConnectivity(alerter Alerter, interval time.Duration) {
 				log.Printf("failed to send alert: %v", err)
 			}
 			cancel()
+			wasDown = false
 		}
 
 		<-ticker.C
@@ -189,7 +190,7 @@ func main() {
 
 	alerter := DiscordAlerter{os.Getenv("DISCORD_WEBHOOK_URL")}
 	monitor(targets, 10*time.Second, out, alerter)
-	pollConnectivity(alerter, 10*time.Second)
+	go pollConnectivity(alerter, 10*time.Second)
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 	go func() {
