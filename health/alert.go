@@ -6,19 +6,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 type AlertEvent string
 
 const (
-	EventDown     AlertEvent = "down"
-	EventRecovery AlertEvent = "recovery"
+	EventDown            AlertEvent = "down"
+	EventRecovery        AlertEvent = "recovery"
+	EventNetworkDown     AlertEvent = "network_down"
+	EventNetworkRecovery AlertEvent = "network_recovery"
 )
 
 type Alert struct {
-	Target Target
-	Status Status
-	Event  AlertEvent
+	Target  Target
+	Status  Status
+	Event   AlertEvent
+	DownFor time.Duration
 }
 type Alerter interface {
 	Alert(ctx context.Context, a Alert) error
@@ -40,6 +44,10 @@ func (d DiscordAlerter) Alert(ctx context.Context, a Alert) error {
 		message = "🔴 **" + a.Target.Name + " is DOWN**"
 	case EventRecovery:
 		message = "🟢 **" + a.Target.Name + " has RECOVERED**"
+	case EventNetworkDown:
+		message = "🔴 **host network is DOWN**"
+	case EventNetworkRecovery:
+		message = fmt.Sprintf("🟢 **host network has RECOVERED - was down for %s", a.DownFor.Round(time.Second))
 	default:
 		return fmt.Errorf("unknown alert event: %q", a.Event)
 	}
