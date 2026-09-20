@@ -7,17 +7,19 @@ jobs:
     deploy:
         runs-on: self-hosted
         steps:
+            - name: pull
+              working-directory: /opt/services/s3ntry
+              run: git pull
+
             - name: lint/test
               working-directory: /opt/services/s3ntry/health
               run: |
                 go vet ./...
                 go test ./...
-            
-            - name: pull and build
-              working-directory: /opt/services/s3ntry
-              run: |
-                git pull
-                cd health && go build -o s3ntry-health .
+
+            - name: build
+              working-directory: /opt/services/s3ntry/health
+              run: go build -o s3ntry-health .
 
             - name: restart service
               run: systemctl --user restart s3ntry-health
