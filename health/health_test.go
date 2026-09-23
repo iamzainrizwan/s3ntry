@@ -24,7 +24,7 @@ func TestCheckOnce(t *testing.T) {
 		}
 	})
 
-	t.Run("service is up", func(t *testing.T) {
+	t.Run("service is down", func(t *testing.T) {
 		target := Target{
 			"test-service",
 			"http://127.0.0.1:1",
@@ -33,7 +33,7 @@ func TestCheckOnce(t *testing.T) {
 		status := checkOnce(target)
 
 		if status.Up {
-			t.Errorf("expected service to be down")
+			t.Error("expected service to be down")
 		}
 	})
 }
