@@ -222,10 +222,18 @@ func main() {
 		log.Fatalf("failed to load embedded static files: %v", err)
 	}
 
+	// 5152 sits next to 1337 (5150) and helm (5151); 8080 is qbittorrent's.
+	// S3NTRY_ADDR overrides it if something else ever claims the port.
+	addr := os.Getenv("S3NTRY_ADDR")
+	if addr == "" {
+		addr = ":5152"
+	}
+
 	http.HandleFunc("/status", statusHandler)
 	http.Handle("/", http.FileServer(http.FS(staticRoot)))
 	go func() {
-		if err := http.ListenAndServe(":8080", nil); err != nil {
+		log.Printf("status page listening on %s", addr)
+		if err := http.ListenAndServe(addr, nil); err != nil {
 			log.Printf("HTTP server failed: %v", err)
 		}
 	}()
