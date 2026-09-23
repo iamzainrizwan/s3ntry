@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>s3ntry</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>s3ntry</h1>
+  <span id="last-updated" class="muted"></span>
+</header>
+
+<main>
+  <section>
+    <h2>services</h2>
+    <table id="services-table">
+      <thead>
+        <tr><th>target</th><th>status</th><th>latency</th><th>checked</th></tr>
+      </thead>
+      <tbody id="services-body"></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>host</h2>
+    <div id="host-cards" class="cards"></div>
+  </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

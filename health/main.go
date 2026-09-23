@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"embed"
 	"encoding/json"
 	"io"
+	"io/fs"
 	"log"
 	"net"
 	"net/http"
@@ -13,6 +15,9 @@ import (
 	"sync"
 	"time"
 )
+
+//go:embed static
+var staticFiles embed.FS
 
 type Target struct {
 	Name string
@@ -212,7 +217,13 @@ func main() {
 		}
 	}()
 
+	staticRoot, err := fs.Sub(staticFiles, "static")
+	if err != nil {
+		log.Fatalf("failed to load embedded static files: %v", err)
+	}
+
 	http.HandleFunc("/status", statusHandler)
+	http.Handle("/", http.FileServer(http.FS(staticRoot)))
 	go func() {
 		if err := http.ListenAndServe(":8080", nil); err != nil {
 			log.Printf("HTTP server failed: %v", err)
